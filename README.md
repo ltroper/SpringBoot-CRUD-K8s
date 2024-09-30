@@ -1,3 +1,7 @@
+To modify the guide so that it uses a pre-built, public Spring Boot CRUD application image, follow the updated instructions below.
+
+---
+
 # Deploying a Spring Boot CRUD Application with MySQL on Kubernetes
 
 In this guide, we will walk through the steps required to deploy a CRUD application to Kubernetes using a Spring Boot backend and a MySQL database. This includes setting up persistent storage for MySQL, configuring secrets and environment variables, and creating deployments and services for both the Spring Boot application and MySQL.
@@ -6,7 +10,6 @@ In this guide, we will walk through the steps required to deploy a CRUD applicat
 
 - A running Kubernetes cluster (we are using Linode Kubernetes Engine, but any Kubernetes distribution will work).
 - `kubectl` configured to interact with your cluster.
-- Docker installed for building the Spring Boot application's image.
 
 ## Step 1: Setting Up the MySQL Database
 
@@ -143,11 +146,11 @@ echo -n 'your-username' | base64
 echo -n 'your-password' | base64
 ```
 
-## Step 2: Deploy the Spring Boot Application
+## Step 2: Deploy the Spring Boot Application Using a Pre-built Image
+
+Instead of building and pushing your own image, we'll use a pre-built, publicly available image that already contains the Spring Boot CRUD application.
 
 ### 2.1 Deployment for Spring Boot Application
-
-Now, we will deploy the Spring Boot application, which interacts with the MySQL database. The database credentials and connection information will be injected via environment variables.
 
 Create a file named `app-deploy.yaml`:
 
@@ -168,7 +171,7 @@ spec:
     spec:
       containers:
         - name: springboot-crud-k8s
-          image: springboot-crud-k8s:1.0
+          image: javatechie/k8s-springboot-mysql-crud-example:latest # Using a pre-built image
           ports:
             - containerPort: 8080
           env:
@@ -216,26 +219,7 @@ spec:
   type: NodePort
 ```
 
-## Step 3: Building and Pushing the Spring Boot Application Image
-
-Before deploying the Spring Boot application, we need to build the Docker image and push it to a container registry.
-
-1. Build the Docker image:
-
-    ```bash
-    docker build -t springboot-crud-k8s:1.0 .
-    ```
-
-2. Push the image to your container registry (e.g., Docker Hub):
-
-    ```bash
-    docker tag springboot-crud-k8s:1.0 your-dockerhub-username/springboot-crud-k8s:1.0
-    docker push your-dockerhub-username/springboot-crud-k8s:1.0
-    ```
-
-Make sure to update the `image` field in `app-deploy.yaml` with your actual image name.
-
-## Step 4: Deploy to Kubernetes
+## Step 3: Deploy to Kubernetes
 
 Now that we have our manifest files ready, deploy everything to Kubernetes:
 
@@ -258,7 +242,7 @@ Now that we have our manifest files ready, deploy everything to Kubernetes:
     kubectl apply -f app-deploy.yaml
     ```
 
-## Step 5: Verify the Deployment
+## Step 4: Verify the Deployment
 
 After deploying the resources, check the status of your pods and services:
 
@@ -280,4 +264,4 @@ If your service type is `NodePort`, access the application using the node's IP a
 
 ## Conclusion
 
-By following this guide, you've successfully deployed a Spring Boot CRUD application and MySQL database to your Kubernetes cluster. You've used ConfigMaps and Secrets to manage environment variables securely, and you’ve created persistent storage for MySQL data. This setup allows you to scale the application and database independently.
+By following this guide, you've successfully deployed a Spring Boot CRUD application and MySQL database to your Kubernetes cluster using a pre-built image. This simplifies the process by eliminating the need to build and push your own Docker image while still allowing you to leverage Kubernetes for scaling and managing your application.
