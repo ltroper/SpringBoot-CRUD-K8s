@@ -1,4 +1,4 @@
-# Securing LKE Cluster Part 5: Deploying a Spring Boot CRUD Application with MySQL
+# Deploying a Spring Boot CRUD Application with MySQL on Kubernetes
 
 In this guide, we will walk through the steps required to deploy a CRUD application to Kubernetes using a Spring Boot backend and a MySQL database. This includes setting up persistent storage for MySQL, configuring secrets and environment variables, and creating deployments and services for both the Spring Boot application and MySQL.
 
