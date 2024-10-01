@@ -248,27 +248,14 @@ spec:
   type: NodePort
 ```
 
-## Step 3: Deploy to Kubernetes
 
-Now that we have our manifest files ready, deploy everything to Kubernetes:
+Now that we have our manifest files ready, deploy to Kubernetes:
 
-1. Apply the ConfigMap and Secret:
-
-    ```bash
-    kubectl apply -f mysql-configmap.yaml
-    kubectl apply -f mysql-secrets.yaml
-    ```
-
-2. Apply the MySQL deployment and service:
-
-    ```bash
-    kubectl apply -f db-deploy.yaml
-    ```
-
-3. Apply the Spring Boot application deployment and service:
+1. Apply the Spring Boot application deployment and service:
 
     ```bash
     kubectl apply -f app-deploy.yaml
+    kubectl apply -f app-service.yaml
     ```
 
 ## Step 4: Verify the Deployment
