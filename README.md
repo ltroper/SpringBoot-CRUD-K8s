@@ -187,20 +187,20 @@ Create a file named `app-deploy.yaml`:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: springboot-crud-deployment
+  name: springboot-petclinic
 spec:
   selector:
     matchLabels:
-      app: springboot-k8s-mysql
+      app: springboot-petclinic
   replicas: 3
   template:
     metadata:
       labels:
-        app: springboot-k8s-mysql
+        app: springboot-petclinic
     spec:
       containers:
-        - name: springboot-crud-k8s
-          image: openjdk:11-jre-slim
+        - name: springboot-petclinic
+          image: springcommunity/spring-petclinic:latest
           ports:
             - containerPort: 8080
           env:
@@ -227,6 +227,7 @@ spec:
                 secretKeyRef:
                   name: mysql-secrets
                   key: password
+
 ```
 
 ### 2.2 Service for Spring Boot Application
@@ -237,15 +238,16 @@ Expose the Spring Boot application using a **Service**:
 apiVersion: v1
 kind: Service
 metadata:
-  name: springboot-crud-svc
+  name: springboot-petclinic-svc
 spec:
   selector:
-    app: springboot-k8s-mysql
+    app: springboot-petclinic
   ports:
     - protocol: "TCP"
       port: 8080
       targetPort: 8080
   type: NodePort
+
 ```
 
 
