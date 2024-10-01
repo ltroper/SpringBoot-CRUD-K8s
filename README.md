@@ -200,7 +200,7 @@ spec:
     spec:
       containers:
         - name: springboot-crud-k8s
-          image: javatechie/k8s-springboot-mysql-crud-example:latest # Using a pre-built image
+          image: openjdk:11-jre-slim
           ports:
             - containerPort: 8080
           env:
