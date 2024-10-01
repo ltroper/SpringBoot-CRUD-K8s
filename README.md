@@ -122,7 +122,7 @@ metadata:
   name: db-config
 data:
   host: mysql
-  dbName: javatechie
+  dbName: mydatabase
 ```
 
 ### 1.5 MySQL Secrets
