@@ -54,6 +54,7 @@ spec:
 ### 1.2 MySQL Deployment
 
 Next, we will create a **Deployment** for the MySQL database. The database credentials and configuration will be injected via Kubernetes secrets and config maps.
+Create a file named `db-deploy.yaml`:
 
 ```yaml
 apiVersion: apps/v1
@@ -108,6 +109,7 @@ spec:
 ### 1.3 MySQL Service
 
 Expose MySQL to other services using a **Service**:
+Create a file named `db-service.yaml`:
 
 ```yaml
 apiVersion: v1
@@ -130,7 +132,7 @@ spec:
 ### 1.4 MySQL ConfigMap
 
 Create a **ConfigMap** to hold the database name and host information:
-
+Create a file named `db-configmap.yaml`:
 ```yaml
 apiVersion: v1
 kind: ConfigMap
@@ -144,7 +146,7 @@ data:
 ### 1.5 MySQL Secrets
 
 We will store sensitive information such as the MySQL root password and username using Kubernetes **Secrets**:
-
+Create a file named `db-secret.yaml`:
 ```yaml
 apiVersion: v1
 kind: Secret
@@ -160,6 +162,17 @@ The values are base64-encoded. You can use the following command to encode your 
 ```bash
 echo -n 'your-username' | base64
 echo -n 'your-password' | base64
+```
+
+
+To set up the database, run the following commands:
+```
+kubectl apply -f db-pv.yaml           # Create the Persistent Volume
+kubectl apply -f db-pvc.yaml          # Create the Persistent Volume Claim
+kubectl apply -f db-configmap.yaml     # Create the ConfigMap for database settings
+kubectl apply -f db-secret.yaml        # Create the Secrets for sensitive data
+kubectl apply -f db-deploy.yaml        # Deploy the MySQL application
+kubectl apply -f db-service.yaml       # Expose the MySQL service
 ```
 
 ## Step 2: Deploy the Spring Boot Application Using a Pre-built Image
