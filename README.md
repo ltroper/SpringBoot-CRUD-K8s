@@ -13,11 +13,27 @@ In this guide, we will walk through the steps required to deploy a CRUD applicat
 
 ## Step 1: Setting Up the MySQL Database
 
-### 1.1 Persistent Volume Claim for MySQL
+### 1.1 Persistent Volume and PV Claim for MySQL
 
-The MySQL database needs persistent storage to retain data across pod restarts. Define a **Persistent Volume Claim** (PVC) for MySQL:
+The MySQL database needs persistent storage to retain data across pod restarts. Define a **Persistent Volume** (PV) and a **Persistent Volume Claim** (PVC) for MySQL:
 
-Create a file named `db-deploy.yaml`:
+Create a file named `db-pv.yaml`:
+```yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: mysql-pv
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath: 
+    path: /mnt/data/mysql # Change this to a suitable path on your nodes
+
+```
+
+Create a file named `db-pvc.yaml`:
 
 ```yaml
 apiVersion: v1
