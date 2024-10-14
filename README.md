@@ -1,41 +1,107 @@
-To modify the guide so that it uses a pre-built, public Spring Boot CRUD application image, follow the updated instructions below.
+# Deployment Guide for a Spring Boot CRUD Application
+
+In this guide, we will deploy a Spring Boot CRUD application using a pre-built Docker image (`ltroper/springboot-crud-k8s`). This application serves as a straightforward implementation of a CRUD (Create, Read, Update, Delete) service, providing a RESTful interface to manage resources. Our deployment will focus on using Kubernetes to orchestrate the application and its underlying MySQL database.
+
+We will use the following components:
+- **ConfigMap**: To manage configuration settings for the application.
+- **Secret**: To securely store sensitive information like the database username and password.
+- **PersistentVolume and PersistentVolumeClaim**: To ensure data persistence for the MySQL database.
+- **Deployment**: To define the desired state for the MySQL database and Spring Boot application.
+- **Service**: To expose the MySQL database and Spring Boot application for internal and external access.
+
+This guide will walk you through each step, including creating the necessary configuration files and deploying both the database and application to a Kubernetes cluster.
+
+## Step 1: Create the ConfigMap and Secret
+
+We'll begin by creating a ConfigMap to hold our database configuration details and a Secret to store sensitive information.
+
+### 1.1 ConfigMap
+
+A ConfigMap allows you to decouple environment-specific configuration from your container images, making it easier to manage changes.
+
+### 1.2 Secret
+
+A Secret is used to store sensitive information like passwords, tokens, or SSH keys. We will base64 encode our MySQL credentials for security.
+
+### Create Configuration Files
+
+Create a file named `configmap-secret.yaml` and add the following content:
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: db-config
+data:
+  host: mysql
+  dbName: mydatabase
 
 ---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysql-secrets
+data:
+  username: cm9vdA==  # base64 encoded value for "root"
+  password: cm9vdA==  # base64 encoded value for "root"
+```
 
-# Deploying a Spring Boot CRUD Application with MySQL on Kubernetes
+**Prompt to Test**: Apply the ConfigMap and Secret by running:
 
-In this guide, we will walk through the steps required to deploy a CRUD application to Kubernetes using a Spring Boot backend and a MySQL database. This includes setting up persistent storage for MySQL, configuring secrets and environment variables, and creating deployments and services for both the Spring Boot application and MySQL.
+```bash
+kubectl apply -f configmap-secret.yaml
+```
 
-## Prerequisites
+After executing the command, verify that they were created successfully:
 
-- A running Kubernetes cluster (we are using Linode Kubernetes Engine, but any Kubernetes distribution will work).
-- `kubectl` configured to interact with your cluster.
+```bash
+kubectl get configmaps
+kubectl get secrets
+```
 
-## Step 1: Setting Up the MySQL Database
+## Step 2: Deploy the MySQL Database
 
-### 1.1 Persistent Volume and PV Claim for MySQL
+Next, we will deploy the MySQL database. This includes defining the PersistentVolume, PersistentVolumeClaim, Deployment, and Service.
 
-The MySQL database needs persistent storage to retain data across pod restarts. Define a **Persistent Volume** (PV) and a **Persistent Volume Claim** (PVC) for MySQL:
+### 2.1 PersistentVolume
 
-Create a file named `db-pv.yaml`:
+The PersistentVolume (PV) provides a piece of storage in the cluster, which can be used by MySQL to store its data.
+
+### 2.2 PersistentVolumeClaim
+
+The PersistentVolumeClaim (PVC) requests a specific amount of storage from the available PVs.
+
+### 2.3 Deployment
+
+The Deployment will manage the MySQL database pod, specifying how to run the MySQL container.
+
+### 2.4 Service
+
+The Service exposes the MySQL deployment to other applications within the cluster.
+
+### Create MySQL Deployment Files
+
+Create a file named `mysql-deployment.yaml` and add the following content:
+
 ```yaml
 apiVersion: v1
 kind: PersistentVolume
 metadata:
   name: mysql-pv
+  labels:
+    app: mysql
+    tier: database
 spec:
   capacity:
     storage: 1Gi
   accessModes:
     - ReadWriteOnce
-  hostPath: 
-    path: /mnt/data/mysql # Change this to a suitable path on your nodes
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: manual
+  hostPath:
+    path: "/mnt/data/mysql"
 
-```
-
-Create a file named `db-pvc.yaml`:
-
-```yaml
+---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -49,14 +115,8 @@ spec:
   resources:
     requests:
       storage: 1Gi
-```
 
-### 1.2 MySQL Deployment
-
-Next, we will create a **Deployment** for the MySQL database. The database credentials and configuration will be injected via Kubernetes secrets and config maps.
-Create a file named `db-deploy.yaml`:
-
-```yaml
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -88,7 +148,6 @@ spec:
                 secretKeyRef:
                   name: mysql-secrets
                   key: password
-
             - name: MYSQL_DATABASE
               valueFrom:
                 configMapKeyRef:
@@ -104,14 +163,8 @@ spec:
         - name: mysql-persistent-storage
           persistentVolumeClaim:
             claimName: mysql-pv-claim
-```
 
-### 1.3 MySQL Service
-
-Expose MySQL to other services using a **Service**:
-Create a file named `db-service.yaml`:
-
-```yaml
+---
 apiVersion: v1
 kind: Service
 metadata:
@@ -129,78 +182,58 @@ spec:
   clusterIP: None
 ```
 
-### 1.4 MySQL ConfigMap
-
-Create a **ConfigMap** to hold the database name and host information:
-Create a file named `db-configmap.yaml`:
-```yaml
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: db-config
-data:
-  host: mysql
-  dbName: mydatabase
-```
-
-### 1.5 MySQL Secrets
-
-We will store sensitive information such as the MySQL root password and username using Kubernetes **Secrets**:
-Create a file named `db-secret.yaml`:
-```yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: mysql-secrets
-data:
-  username: cm9vdA==
-  password: cm9vdA==
-```
-
-The values are base64-encoded. You can use the following command to encode your credentials:
+**Prompt to Test**: Apply the MySQL deployment by running:
 
 ```bash
-echo -n 'your-username' | base64
-echo -n 'your-password' | base64
+kubectl apply -f mysql-deployment.yaml
 ```
 
+After running the command, check the status of the MySQL deployment:
 
-To set up the database, run the following commands:
-```
-kubectl apply -f db-pv.yaml           # Create the Persistent Volume
-kubectl apply -f db-pvc.yaml          # Create the Persistent Volume Claim
-kubectl apply -f db-configmap.yaml     # Create the ConfigMap for database settings
-kubectl apply -f db-secret.yaml        # Create the Secrets for sensitive data
-kubectl apply -f db-deploy.yaml        # Deploy the MySQL application
-kubectl apply -f db-service.yaml       # Expose the MySQL service
+```bash
+kubectl get pods
 ```
 
-## Step 2: Deploy the Spring Boot Application Using a Pre-built Image
+You should see the MySQL pod in the list. Once the pod is running, you can check the logs to ensure MySQL started correctly:
 
-Instead of building and pushing your own image, we'll use a pre-built, publicly available image that already contains the Spring Boot CRUD application.
+```bash
+kubectl logs <mysql-pod-name>
+```
 
-### 2.1 Deployment for Spring Boot Application
+## Step 3: Deploy the Spring Boot Application
 
-Create a file named `app-deploy.yaml`:
+Now we will deploy the Spring Boot CRUD application using the pre-built image.
+
+### 3.1 Deployment for Spring Boot Application
+
+We'll create a Deployment that specifies the Spring Boot application's container image, environment variables, and port configurations.
+
+### 3.2 Service for Application
+
+We'll also expose the Spring Boot application via a Service.
+
+### Create Spring Boot Deployment Files
+
+Create a file named `springboot-deployment.yaml` and add the following content:
 
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: springboot-petclinic
+  name: springboot-crud-deployment
 spec:
   selector:
     matchLabels:
-      app: springboot-petclinic
+      app: springboot-k8s-mysql
   replicas: 3
   template:
     metadata:
       labels:
-        app: springboot-petclinic
+        app: springboot-k8s-mysql
     spec:
       containers:
-        - name: springboot-petclinic
-          image: springcommunity/spring-petclinic:latest
+        - name: springboot-crud-k8s
+          image: ltroper/springboot-crud-k8s:4.0
           ports:
             - containerPort: 8080
           env:
@@ -209,77 +242,72 @@ spec:
                 configMapKeyRef:
                   name: db-config
                   key: host
-
             - name: DB_NAME
               valueFrom:
                 configMapKeyRef:
                   name: db-config
                   key: dbName
-
             - name: DB_USERNAME
               valueFrom:
                 secretKeyRef:
                   name: mysql-secrets
                   key: username
-
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: mysql-secrets
                   key: password
 
-```
-
-### 2.2 Service for Spring Boot Application
-
-Expose the Spring Boot application using a **Service**:
-
-```yaml
+---
 apiVersion: v1
 kind: Service
 metadata:
-  name: springboot-petclinic-svc
+  name: springboot-crud-svc
 spec:
   selector:
-    app: springboot-petclinic
+    app: springboot-k8s-mysql
   ports:
     - protocol: "TCP"
       port: 8080
       targetPort: 8080
   type: NodePort
-
 ```
 
+**Prompt to Test**: Apply the Spring Boot deployment by running:
 
-Now that we have our manifest files ready, deploy to Kubernetes:
+```bash
+kubectl apply -f springboot-deployment.yaml
+```
 
-1. Apply the Spring Boot application deployment and service:
+After executing the command, check the status of the Spring Boot application pods:
 
-    ```bash
-    kubectl apply -f app-deploy.yaml
-    kubectl apply -f app-service.yaml
-    ```
+```bash
+kubectl get pods
+```
 
-## Step 4: Verify the Deployment
+You should see the Spring Boot application pods running. You can check their logs to confirm that the application has started correctly:
 
-After deploying the resources, check the status of your pods and services:
+```bash
+kubectl logs <springboot-pod-name>
+```
 
-1. Check the pods:
+## Step 4: Access the Application
 
-    ```bash
-    kubectl get pods
-    ```
+1. Get the Node IP and Port of the Spring Boot service to access the application.
 
-2. Check the services:
+```bash
+kubectl get nodes -o wide
+kubectl get svc springboot-crud-svc
+```
 
-    ```bash
-    kubectl get svc
-    ```
+2. Once you have the external IP of your node and the port assigned to the `springboot-crud-svc`, you can access the application using:
 
-3. Access the Spring Boot application:
+```
+http://<Node-IP>:<Node-Port>/orders
+```
 
-If your service type is `NodePort`, access the application using the node's IP and the exposed port. Use `kubectl describe svc springboot-crud-svc` to get the assigned NodePort.
+This endpoint will allow you to interact with the CRUD operations of the Spring Boot application.
 
-## Conclusion
+## Summary
 
-By following this guide, you've successfully deployed a Spring Boot CRUD application and MySQL database to your Kubernetes cluster using a pre-built image. This simplifies the process by eliminating the need to build and push your own Docker image while still allowing you to leverage Kubernetes for scaling and managing your application.
+In this guide, we walked through the steps to deploy a Spring Boot CRUD application using a pre-built image and a MySQL database on Kubernetes. We created the necessary ConfigMaps, Secrets, Persistent Volumes, Deployments, and Services. With everything set up, you should be able to access your application and start managing your resources through the provided RESTful API.
